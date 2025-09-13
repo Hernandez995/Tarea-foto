@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Captura por Voz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+    }
+    video, canvas {
+      margin: 10px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 90%;
+    }
+    button {
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background: #555;
+    }
+    #estado {
+      margin: 15px;
+      font-weight: bold;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <h1>Captura de Foto con Voz</h1>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <div>
+    <button id="descargar" disabled>Descargar Foto</button>
+  </div>
+  <p id="estado">Diga "foto" para capturar</p>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const descargarBtn = document.getElementById("descargar");
+    const estado = document.getElementById("estado");
+
+    // Acceder a la cámara
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        console.error("Error al acceder a la cámara: ", err);
+      });
+
+    // Función para capturar la foto
+    function capturarFoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      estado.textContent = "📸 Foto capturada";
+      descargarBtn.disabled = false;
+    }
+
+    // Configurar Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const last = event.results.length - 1;
+        const texto = event.results[last][0].transcript.trim().toLowerCase();
+        console.log("Reconocido:", texto);
+        if (texto.includes("foto")) {
+          capturarFoto();
+        }
+      };
+
+      recognition.onstart = () => {
+        estado.textContent = "🎤 Reconocimiento de voz activo, diga 'foto'";
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Error de reconocimiento:", event.error);
+        estado.textContent = "⚠️ Error en reconocimiento de voz";
+      };
+
+      recognition.start();
+    } else {
+      estado.textContent = "❌ Tu navegador no soporta Web Speech API";
+    }
+
+    // Descargar la foto
+    descargarBtn.addEventListener("click", () => {
+      const enlace = document.createElement("a");
+      enlace.href = canvas.toDataURL("image/png");
+      enlace.download = "foto.png";
+      enlace.click();
+    });
+  </script>
+</body>
+</html>
